@@ -47,20 +47,6 @@ def get_aligned_data_path(config, index=0):
     """Get the full path to an aligned data file by index."""
     return os.path.join(os.path.dirname(__file__), config['aligned_data_folder'], config['aligned_data_files'][index])
 
-
-def get_aligned_data_folder(config):
-    """Get the full path to the aligned data folder."""
-    return os.path.join(os.path.dirname(__file__), config['aligned_data_folder'])
-
-def get_georeference_output_folder(config):
-    """Get the full path to the georeference output folder."""
-    return os.path.join(os.path.dirname(__file__), config['georeference_output_folder'])
-
-def get_tile_images_output_folder(config):
-    """Get the full path to the tile images output folder."""
-    return os.path.join(os.path.dirname(__file__), config['tile_images_output_folder'])
-
-
 def get_aligned_data_folder(config):
     """Get the full path to the aligned data folder."""
     return os.path.join(os.path.dirname(__file__), config['aligned_data_folder'])

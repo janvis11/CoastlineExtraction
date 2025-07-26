@@ -1,3 +1,4 @@
+
 """
 Batch Alignment Script for Satellite Imagery
 
@@ -41,10 +42,13 @@ base_img = get_ground_truth_path(config, 4) # Index 4 for 9-5-2016_Ortho_4Band_N
 # Output directory
 aligned_data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), config['processed_data_folder'], 'results_batch_align')
 
+
+
 # Create the output directory if it doesn't exist
 os.makedirs(aligned_data_dir, exist_ok=True)
 
 # Alignment parameters from your base image
+
 # target_srs = "EPSG:32603"
 # pixel_size = 5.532779396951528
 # pixel_size = 0.5  # Match base image resolution (0.5m)
@@ -74,6 +78,7 @@ for fname in os.listdir(raw_data_dir):
         subprocess.run(cmd, check=True)
 
 print("Batch alignment complete! Aligned files are in:", aligned_data_dir) 
+
 
 
 

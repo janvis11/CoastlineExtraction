@@ -99,4 +99,3 @@
     "georeference_output_folder": "processed_data/results_georeference",
     "tile_images_output_folder": "processed_data/results_tile_images"
 }
-
