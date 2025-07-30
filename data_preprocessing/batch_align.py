@@ -3,14 +3,18 @@
 Batch Alignment Script for Satellite Imagery
 
 This script batch-aligns all satellite images in the `raw_data/` directory to match a reference
+
 coastline raster (9-5-2016_Ortho_4Band_NDWI_3.125m.tif) using GDAL warp.
+
 
 Aligned images are saved to `processed_data/results_batch_align/` with a '_aligned.tif' suffix.
 
 Key Parameters:
 - Target CRS: UTM Zone 3N (EPSG:32603)
+
 - Pixel size: 0.5 meters (high resolution)
 - Extent: [598355.000000, 7326619.000000, 605849.500000, 7334628.500000]
+
 
 Dependencies:
 - GDAL CLI tools (`gdalwarp`)
@@ -78,7 +82,4 @@ for fname in os.listdir(raw_data_dir):
         subprocess.run(cmd, check=True)
 
 print("Batch alignment complete! Aligned files are in:", aligned_data_dir) 
-
-
-
 
