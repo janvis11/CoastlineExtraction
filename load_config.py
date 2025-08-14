@@ -69,4 +69,3 @@ if __name__ == "__main__":
     print("Aligned data folder:", get_aligned_data_folder(config))
     print("Georeference output folder:", get_georeference_output_folder(config))
     print("Tile images output folder:", get_tile_images_output_folder(config)) 
-
