@@ -11,7 +11,6 @@ Aligned images are saved to `processed_data/results_batch_align/` with a '_align
 
 Key Parameters:
 - Target CRS: UTM Zone 3N (EPSG:32603)
-
 - Pixel size: 0.5 meters (high resolution)
 - Extent: [598355.000000, 7326619.000000, 605849.500000, 7334628.500000]
 
