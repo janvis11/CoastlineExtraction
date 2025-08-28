@@ -8,6 +8,7 @@
         "20160909_213104_0e19_3B_AnalyticMS_SR_clip.tif",
         "20160909_213333_0e0e_3B_AnalyticMS_SR_clip.tif"
     ],
+
     "raw_data_folder": "raw_data",
     "raw_data_files": [
         "568197_0369619_2017-06-21_1006_BGRN_SR_clip.tif",
@@ -55,7 +56,10 @@
     "ground_truth_files": [
         "2016_HiRes_Final_Coastline.shp",
         "2016_HiRes_Final_Coastline.tif",
-        "2016_HiRes_Final_Coastline_UTM3N.tif"
+        "2016_HiRes_Final_Coastline_UTM3N.tif",
+        "9-5-2016_Ortho_4Band_NDWI.tif",
+        "9-5-2016_Ortho_4Band_NDWI_3.125m.tif"
+        
     ],
     "processed_data_folder": "processed_data",
     "aligned_data_folder": "processed_data/results_batch_align",

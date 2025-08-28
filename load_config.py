@@ -60,7 +60,6 @@ def get_tile_images_output_folder(config):
     return os.path.join(os.path.dirname(__file__), config['tile_images_output_folder'])
 
 
-
 # Example:
 if __name__ == "__main__":
     config = load_config()
