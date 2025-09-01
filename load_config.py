@@ -59,6 +59,9 @@ def get_tile_images_output_folder(config):
     """Get the full path to the tile images output folder."""
     return os.path.join(os.path.dirname(__file__), config['tile_images_output_folder'])
 
+def get_augment_tiles_output_folder(config):
+    """Get the full path to the augment tiles output folder."""
+    return os.path.join(os.path.dirname(__file__), config['augment_tiles_output_folder'])
 
 # Example:
 if __name__ == "__main__":
@@ -69,3 +72,4 @@ if __name__ == "__main__":
     print("Aligned data folder:", get_aligned_data_folder(config))
     print("Georeference output folder:", get_georeference_output_folder(config))
     print("Tile images output folder:", get_tile_images_output_folder(config)) 
+    print("Augment tiles output folder:", get_augment_tiles_output_folder(config))
