@@ -8,8 +8,3 @@
 /data/
 **/*.code-workspace
 
-
-# Data directories to ignore
-/ground_truth/
-/processed_data/
-/raw_data/
