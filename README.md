@@ -12,10 +12,17 @@ The newly generated labeled data, derived from this approach, will be used to re
 
 Before installing this project, ensure you have the following requirements:
 
-- **Python 3.8 or higher**
+- **Python**  
+  - **Project version**: Tested and developed with **Python 3.13.5**  
+  - **Conda environment**: Recommended to use **Python 3.10** for best compatibility with dependencies  
+
+- **Miniconda** (for managing conda environments)
+
 - **Git** (for cloning the repository)
-- **GDAL** (for geospatial data processing)
-- **PyTorch** (for deep learning models)
+
+- **GDAL** (install via `conda-forge` for easier setup)
+
+- **Rasterio 1.4.3+** (for geospatial data processing)
 
 ---
 
@@ -112,22 +119,6 @@ config = load_config()
 image_path = get_image_path(config, 0)        # First image file
 shapefile_path = get_shapefile_path(config, 0) # First shapefile
 ```
-
-### Available Configuration Functions
-
-| Function | Description |
-|----------|-------------|
-| `get_image_path(config, index)` | Get image file paths |
-| `get_raw_data_path(config, index)` | Get raw data file paths |
-| `get_shapefile_path(config, index)` | Get shapefile paths |
-| `get_ground_truth_path(config, index)` | Get ground truth file paths |
-| `get_aligned_data_path(config, index)` | Get aligned data file paths |
-| `get_aligned_data_folder(config)` | Get aligned data folder path |
-| `get_georeference_output_folder(config)` | Get georeference output folder |
-| `get_mask_generator_output_folder(config)` | Get mask generator output folder |
-| `get_tile_images_output_folder(config)` | Get tile images output folder |
-| `get_augment_tiles_output_folder(config)` | Get augment tiles output folder |
-
 ---
 
 
