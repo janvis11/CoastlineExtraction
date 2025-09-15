@@ -1,0 +1,14 @@
+This folder contains copies of the final GSoC reports submitted by contributors.  
+
+These are copies of the original reports.  
+Each file includes a link to the original report URL.  
+The purpose of this folder is to preserve the reports within the CoastlineExtraction repository for long-term reference.  
+
+Contributors and Original Report Links:
+
+Contributor: Ritika Kumari  
+Original Report Link: https://github.com/Ritika-K7/GSoC-2025-Final-Report-Alaska-Project 
+
+Contributor: Rawan Elframawy  
+Original Report Link: https://github.com/rawann31/GSoC2024-Report 
+
