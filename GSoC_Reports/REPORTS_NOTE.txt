@@ -1,0 +1,5 @@
+This folder contains copies of the final GSoC reports submitted by contributors.  
+
+These are copies of the original reports.  
+Each file includes a link to the original report URL.  
+The purpose of this folder is to preserve the reports within the CoastlineExtraction repository for long-term reference.  
