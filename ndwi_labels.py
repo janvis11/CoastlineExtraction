@@ -5,45 +5,24 @@ from rasterio.plot import show
 from rasterio.mask import mask
 from rasterio.io import MemoryFile
 import shapely
-from shapely.geometry import Polygon, shape
+from shapely.geometry import Polygon, shape ,box
 import geopandas as gpd
 import os
 from matplotlib import pyplot as plt
 import numpy as np
 import cv2
 
-def create_transect_points(transect_path, line_path, out_path):
-    transects = gpd.read_file(transect_path)
-    coastline = gpd.read_file(line_path)
-    points = coastline.unary_union.intersection(transects.unary_union)
-    fig, ax = plt.subplots(figsize=(14,14))
-    plot_points = gpd.GeoSeries(points)
-    plot_points.plot(ax=ax, color='green')
-    transects.plot(ax=ax, color='red')
-    coastline.plot(ax=ax, color='blue')
+# Add import for config loading
+from load_config import load_config, get_image_path, get_shapefile_path
 
-    plt.show()
+# Add import for check_crs
+from utils.check_crs import check_crs, crs_match
 
-    plot_points.to_file(out_path)
+# Add import for spatial analysis
+from utils.spatial_analysis import log_spatial_info
 
-
-def clip_shp(path_to_shp, boundary_geojson):
-    path_name = os.path.dirname(path_to_shp) + "/"
-    shp_name = os.path.basename(path_to_shp)
-    shp_base, shp_extension = os.path.splitext(shp_name)
-    shp_data = gpd.read_file(path_to_shp)
-
-    poly_boundary = Polygon(shape(boundary_geojson))
-
-    shp_clipped = gpd.clip(shp_data, poly_boundary)
-    fig, ax = plt.subplots(figsize=(12,8))
-    shp_data.plot(ax=ax, color='red')
-    plot_shp = gpd.GeoSeries(poly_boundary)
-    plot_shp.plot(ax=ax, color='green')
-    plt.show()
-
-    out_path = path_name + shp_base + "_clipped.shp"
-    shp_clipped.to_file(out_path)
+# Add import for shapefile generation
+from utils.shapefile_generator import coastline_shp_from_raster, save_and_process, save_concatenated_ndwi_with_shapefile
 
 
 # Gaussian blur parameters
@@ -76,6 +55,15 @@ def get_ndwi_label(image_path, points_path, ksize=100, blurring=True):
     10. Apply majority rule on the number of windows to segment pixels as water.
     11. Concatenate the remaining sliding window images (unlabeled parts) from NDWI classified.
     """
+
+
+    
+    # Check CRS of input files
+    check_crs(image_path, verbose=True)
+    check_crs(points_path, verbose=True)
+
+
+
     # Establish the NDWI calculation and copy metadata
     with rio.open(image_path, driver='GTiff') as src_raster:
         green = src_raster.read(2).astype(np.float32)  # Get the green band
@@ -104,12 +92,33 @@ def get_ndwi_label(image_path, points_path, ksize=100, blurring=True):
         # Getting pixel size for correct calculation of buffer.
         # This value expresses spatial resolution.
         pixel_size = abs(src_raster.transform[0])
+
+        # Fix: retrieve bounds while raster file is open
+        raster_bounds = src_raster.bounds 
         
     # Preparing points for creating label masks
     points_shp = gpd.read_file(points_path)
     points_geom = points_shp.geometry
     points_geom = points_geom.set_crs(epsg=4326)  # Set CRS to WGS84
     points_geom = points_geom.to_crs(src_CRS)  # Convert CRS to match the raster
+
+    # Before saving the file
+    output_dir = "result_ndwi_labels"
+    os.makedirs(output_dir, exist_ok=True)  # This will create the directory if it doesn't exist
+    
+    # Define the path for saving the reprojected vector (shapefile) after CRS alignment
+    reprojected_points_path = os.path.join(output_dir, "reprojected_points.shp")
+    # Save the reprojected point geometries into a new shapefile
+    gpd.GeoDataFrame(geometry=points_geom).to_file(reprojected_points_path)
+
+    # Use crs_match to check CRS of the raster and the reprojected vector file
+    # IMPORTANT: Pass the path to the reprojected file, NOT the original file, to crs_match.
+    if not crs_match(image_path, reprojected_points_path):
+        raise ValueError("CRS mismatch after conversion! Check your input files and CRS conversion steps.")
+    
+
+    # Log spatial info once, outside the main loop
+    log_spatial_info(raster_bounds, points_geom)
 
     otsu_thresholds_clipped = []  # Creating a holder for Otsu's threshold values for clipped images
     skipped = 0  # Counter for skipped windows (less than 201*201)
@@ -127,35 +136,48 @@ def get_ndwi_label(image_path, points_path, ksize=100, blurring=True):
                 with memfile.open(**ndwi_profile) as mem_data:
                     mem_data.write_band(1, ndwi)
                 with memfile.open() as dataset:
-                    out_image, out_transform = mask(dataset, shapes=[buffer], nodata=-1, crop=False)
-                    out_image = out_image[0]
-                    out_image = (out_image * 127) + 128
-                    out_image = out_image.astype(np.uint8)
                     
-                    out_image_clipped, out_transform_clipped = mask(dataset, shapes=[buffer], nodata=-1, crop=True)
-                    out_image_clipped = out_image_clipped[0]
-                    out_image_clipped = (out_image_clipped * 127) + 128
-                    out_image_clipped = out_image_clipped.astype(np.uint8)
+                    # Get raster bounds as a shapely geometry
+                    raster_bounds_geom = box(*dataset.bounds)
                     
-                    # Mask array: mask pixels within the sliding window with 1, else 0
-                    mask_array = np.copy(out_image)
-                    mask_value = 1
-                    mask_array = np.where(mask_array == mask_value, 0, 1)
+                    # Check if the point's buffer intersects with the raster's bounds before masking - Added intersection()
+                    if buffer.intersects(raster_bounds_geom):
+                        out_image, out_transform = mask(dataset, shapes=[buffer], nodata=-1, crop=False)
+                        out_image = out_image[0]
+                        out_image = (out_image * 127) + 128
+                        out_image = out_image.astype(np.uint8)
+                        
+                        out_image_clipped, out_transform_clipped = mask(dataset, shapes=[buffer], nodata=-1, crop=True)
+                        out_image_clipped = out_image_clipped[0]
+                        out_image_clipped = (out_image_clipped * 127) + 128
+                        out_image_clipped = out_image_clipped.astype(np.uint8)
+                        
+                        # Mask array: mask pixels within the sliding window with 1, else 0
+                        mask_array = np.copy(out_image)
+                        mask_value = 1
+                        mask_array = np.where(mask_array == mask_value, 0, 1)
+                    
+                        # Skip buffering windows that are partly or wholly out of the NDWI image
+                        if out_image_clipped.shape[0] < 200 or out_image_clipped.shape[1] < 200:
+                            skipped += 1
+                            continue
+                        
+                        else:
+                            # Calculate Otsu's threshold based on the clipped image
+                            threshold_clipped, image_result_clipped = cv2.threshold(out_image_clipped, 0, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                            otsu_thresholds_clipped.append(threshold_clipped)
+                            threshold_window = np.where(out_image >= threshold_clipped, 1, 0).astype(np.uint8)
+                            label = label | threshold_window.astype(np.uint8)  # Labelled image with sliding windows 
+                            
+                            water_count = water_count + threshold_window
+                            buffer_numbers = buffer_numbers + mask_array
+                    
+                    else:
+                        # If the buffer does not intersect, skip to the next point
+                        skipped += 1
+                        continue
+
                 
-                # Skip buffering windows that are partly or wholly out of the NDWI image
-                if out_image_clipped.shape[0] < 200 or out_image_clipped.shape[1] < 200:
-                    skipped += 1
-                    continue
-                
-                else:
-                    # Calculate Otsu's threshold based on the clipped image
-                    threshold_clipped, image_result_clipped = cv2.threshold(out_image_clipped, 0, 1, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-                    otsu_thresholds_clipped.append(threshold_clipped)
-                    threshold_window = np.where(out_image >= threshold_clipped, 1, 0).astype(np.uint8)
-                    label = label | threshold_window.astype(np.uint8)  # Labelled image with sliding windows 
-                    
-                    water_count = water_count + threshold_window
-                    buffer_numbers = buffer_numbers + mask_array
     
     # Labelled images based on majority sliding windows
     label_majority = np.where(water_count > (buffer_numbers * MAJORITY_THRESHOLD), 1, 0)
@@ -181,16 +203,48 @@ def get_ndwi_label(image_path, points_path, ksize=100, blurring=True):
     print(f"Average threshold value (-1 to 1 NDWI range): {(np.mean(otsu_thresholds_clipped) - 128) / 127}")
 
     print(f"Label min: {np.nanmin(label)} , max: {np.nanmax(label)}")
+
+
+    # Save concatenated NDWI as TIFF and generate shapefile
+    save_concatenated_ndwi_with_shapefile(ndwi_concatenated, ndwi_profile, image_path)
+
     
-    # Plot ndwi before segmentation
+    save_ndwi_plots(ndwi, ndwi_classified, label, label_majority, ndwi_concatenated)
+
+
+
+
+
+def save_ndwi_plots(ndwi, ndwi_classified, label, label_majority, ndwi_concatenated, out_dir="result_ndwi_labels"):
+    """
+    Saves and visualizes the results of NDWI classification and labeling.
+
+    This function generates and saves plots for different NDWI-based classification outputs:
+      - The raw NDWI image.
+      - The NDWI image classified using a mean threshold.
+      - The NDWI image labeled using a sliding window approach.
+      - The NDWI image labeled using a majority rule on sliding windows.
+      - A concatenated image combining sliding window and mean threshold results.
+    All plots are saved as PNG files in the specified output directory.
+
+    Args:
+        ndwi: The computed NDWI image (2D numpy array).
+        ndwi_classified: Binary NDWI image classified by mean threshold (2D numpy array).
+        label: Binary NDWI image labeled by sliding window (2D numpy array).
+        label_majority: Binary NDWI image labeled by majority rule (2D numpy array).
+        ndwi_concatenated: Combined NDWI classification result (2D numpy array).
+        out_dir: Directory to save the output plots (default: 'result_ndwi_labels').
+    """
+    os.makedirs(out_dir, exist_ok=True)
+
     plt.imshow(ndwi)
-    plt.title('NDWI image')
-    plt.show()
-    
-    # Plotting images side by side
-    fig, axs = plt.subplots(2, 2, figsize=(20, 20))
-    
-    # Plot NDWI classified image (based on one mean threshold)
+    plt.title("NDWI Image")
+    plt.axis("off")
+    plt.savefig(os.path.join(out_dir, "ndwi_image.png"))
+    plt.close()
+
+    fig, axs = plt.subplots(2, 2, figsize=(18, 14))
+
     axs[0, 0].imshow(ndwi_classified)
     axs[0, 0].set_title('NDWI Classified with mean threshold')
     axs[0, 0].axis('off')
@@ -210,7 +264,17 @@ def get_ndwi_label(image_path, points_path, ksize=100, blurring=True):
     axs[1, 1].set_title('NDWI Concatenated')
     axs[1, 1].axis('off')
 
-    plt.show()
+    # Save NDWI concatenated as a separate PNG
+    plt.figure(figsize=(10, 8))
+    plt.imshow(ndwi_concatenated)
+    plt.axis('off')
+    plt.savefig(os.path.join(out_dir, "ndwi_concatenated.png"), bbox_inches='tight', pad_inches=0)
+    plt.close()
+
+    plt.tight_layout()
+    fig.savefig(os.path.join(out_dir, "ndwi_outputs_summary.png"))
+    plt.close()
+
 
 
 
@@ -222,7 +286,15 @@ boundary = {'type': 'Polygon',
                              [-162.8235626220703, 66.05622435812153]]]}
 
 
-# To Run script , you need only to change image and points path to yours.
-image_path = "D:/GSoC2024/data/input/268898_0369619_2016-10-15_0e14_BGRN_SR_clip.tif" 
-points_path = "D:/GSoC2024/data/Deering2016/Deering_transect_points_2016.shp"
+
+
+"""
+To run this script:
+Change the index number (the second argument in get_image_path and get_shapefile_path) 
+according to the file you want to process, as specified in your config_template.json.
+"""
+config = load_config()
+image_path = get_image_path(config, 0)  # 268898_0369619_2016-10-15_0e14_BGRN_SR_clip.tif
+points_path = get_shapefile_path(config, 0)  # Deering_transect_points_2016_fw.shp
+
 get_ndwi_label(image_path, points_path)
