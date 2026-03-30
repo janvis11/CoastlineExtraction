@@ -31,7 +31,7 @@ The rapidly warming Arctic is leading to increased rates of coastal erosion, pla
 ## Status vs. “Potential areas of improvement”
 | Area | Status | Notes / Action required |
 |---|---|---|
-| Improve training data with PlanetLabs UDM | ✓ likely done | UDM masking is implemented, verify dataset-level integration for training label creation in `deepwatermap_train.py` and `data_expansion.py`.
+| Improve training data with PlanetLabs UDM | in progress | UDM masking is implemented, verify dataset-level integration for training label creation in `deepwatermap_train.py` and `data_expansion.py`.
 | Data expansion beyond 2017-2019 | ✓ done | `data_expansion.py` has 2020-2026 config and pipeline.
 | Improved cliff area segmentation | ✓ done | `dem_integration.py` handles cliff detection (slope >30°, elevation-stratified thresholding).
 | Handling shadows/buildings/artifacts | ✓ done | `shadow_artifact_detection.py` intended for this; check empirical results and refine thresholds.
